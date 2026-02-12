@@ -4,8 +4,6 @@ from typing import Optional
 from fastapi import FastAPI, UploadFile, File, Form, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
 
 from app.auth import router as auth_router
 from app.security import get_current_user
@@ -230,45 +228,182 @@ async def predict(
 
 @app.post("/download-report")
 def download_report(data: dict):
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from datetime import datetime
 
     buffer = io.BytesIO()
-    c = canvas.Canvas(buffer, pagesize=A4)
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+    
+    styles = getSampleStyleSheet()
+    story = []
 
-    x = 40
-    y = 800
-    line = 18
+    # Custom styles
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=28,
+        textColor=colors.HexColor('#1a1a1a'),
+        spaceAfter=6,
+        alignment=1,  # center
+        fontName='Helvetica-Bold'
+    )
 
-    def draw(text):
-        nonlocal y
-        c.drawString(x, y, text)
-        y -= line
+    subtitle_style = ParagraphStyle(
+        'CustomSubtitle',
+        parent=styles['Normal'],
+        fontSize=11,
+        textColor=colors.HexColor('#666666'),
+        spaceAfter=20,
+        alignment=1,
+        fontName='Helvetica'
+    )
 
-    c.setFont("Helvetica-Bold", 16)
-    draw("Military Triage Report")
-    y -= 10
+    heading_style = ParagraphStyle(
+        'SectionHeading',
+        parent=styles['Heading2'],
+        fontSize=14,
+        textColor=colors.HexColor('#ffffff'),
+        spaceAfter=12,
+        spaceBefore=12,
+        fontName='Helvetica-Bold'
+    )
 
-    c.setFont("Helvetica", 12)
-    draw(f"Triage Level: {data.get('triage_level', '-')}")
-    draw(f"Overall Confidence: {data.get('confidence', 0)}%")
-    y -= 10
+    # Header Section
+    story.append(Paragraph("🪖 MILITARY TRIAGE REPORT", title_style))
+    story.append(Paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", subtitle_style))
+    story.append(Spacer(1, 0.3*inch))
 
-    draw("Modalities Used:")
-    for m in data.get("modalities_used", []):
-        draw(f"- {m}")
-    y -= 10
+    # Triage Level Banner
+    triage_level = data.get('triage_level', 'Unknown')
+    confidence = data.get('confidence', 0)
+    
+    triage_colors = {
+        'Green': colors.HexColor('#10b981'),
+        'Yellow': colors.HexColor('#f59e0b'),
+        'Red': colors.HexColor('#ef4444'),
+        'Black': colors.HexColor('#6b7280')
+    }
+    
+    triage_color = triage_colors.get(triage_level, colors.HexColor('#6b7280'))
+    
+    # Triage banner table
+    triage_data = [
+        [Paragraph(f"<b>TRIAGE LEVEL</b>", ParagraphStyle('banner', parent=styles['Normal'], fontSize=12, textColor=colors.whitesmoke, fontName='Helvetica-Bold')),
+         Paragraph(f"<b>CONFIDENCE</b>", ParagraphStyle('banner', parent=styles['Normal'], fontSize=12, textColor=colors.whitesmoke, fontName='Helvetica-Bold'))],
+        [Paragraph(f"<b>{triage_level}</b>", ParagraphStyle('banner', parent=styles['Normal'], fontSize=24, textColor=colors.whitesmoke, fontName='Helvetica-Bold')),
+         Paragraph(f"<b>{confidence}%</b>", ParagraphStyle('banner', parent=styles['Normal'], fontSize=24, textColor=colors.whitesmoke, fontName='Helvetica-Bold'))]
+    ]
+    
+    triage_table = Table(triage_data, colWidths=[3*inch, 2.5*inch])
+    triage_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), triage_color),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('FONTSIZE', (0, 1), (-1, 1), 20),
+        ('LEFTPADDING', (0, 0), (-1, -1), 20),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 20),
+        ('TOPPADDING', (0, 0), (-1, -1), 15),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 15),
+        ('ROWBACKGROUNDS', (0, 0), (-1, -1), [triage_color, triage_color]),
+    ]))
+    
+    story.append(triage_table)
+    story.append(Spacer(1, 0.3*inch))
 
+    # Override Reason
+    if data.get('override_reason'):
+        story.append(Paragraph("⚠️ OVERRIDE REASON", heading_style))
+        override_style = ParagraphStyle(
+            'override',
+            parent=styles['Normal'],
+            fontSize=11,
+            textColor=colors.HexColor('#dc2626'),
+            spaceAfter=12,
+            fontName='Helvetica'
+        )
+        story.append(Paragraph(data.get('override_reason'), override_style))
+        story.append(Spacer(1, 0.2*inch))
+
+    # Modalities Used
+    story.append(Paragraph("📊 MODALITIES USED", heading_style))
+    modalities_style = ParagraphStyle(
+        'modalities',
+        parent=styles['Normal'],
+        fontSize=11,
+        leftIndent=20,
+        spaceAfter=8,
+        fontName='Helvetica'
+    )
+    modalities = data.get("modalities_used", [])
+    for m in modalities:
+        story.append(Paragraph(f"• {m.capitalize()}", modalities_style))
+    story.append(Spacer(1, 0.2*inch))
+
+    # Model Probabilities
+    story.append(Paragraph("📈 MODEL CONFIDENCE BY TRIAGE LEVEL", heading_style))
     probs = data.get("probabilities", {})
-    draw("Model Probabilities:")
+    
+    prob_data = [["Triage Level", "Confidence Score", "Percentage"]]
     for k, v in probs.items():
-        draw(f"- {k}: {round(v * 100, 1)}%")
-    y -= 10
+        prob_data.append([k, f"{round(v * 100, 1)}%", "█" * int(v * 20)])
+    
+    prob_table = Table(prob_data, colWidths=[1.8*inch, 1.5*inch, 2*inch])
+    prob_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#374151')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 11),
+        ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#f3f4f6'), colors.HexColor('#e5e7eb')]),
+        ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#d1d5db')),
+        ('LEFTPADDING', (0, 0), (-1, -1), 12),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+    ]))
+    
+    story.append(prob_table)
+    story.append(Spacer(1, 0.3*inch))
 
+    # Recommended Actions
     advice = data.get("recommended_action", [])
-    draw("Recommended Actions:")
-    for a in advice:
-        draw(f"- {a}")
+    if advice:
+        story.append(Paragraph("💡 RECOMMENDED ACTIONS", heading_style))
+        action_style = ParagraphStyle(
+            'actions',
+            parent=styles['Normal'],
+            fontSize=11,
+            leftIndent=20,
+            spaceAfter=10,
+            fontName='Helvetica'
+        )
+        for i, a in enumerate(advice, 1):
+            story.append(Paragraph(f"<b>{i}.</b> {a}", action_style))
+        story.append(Spacer(1, 0.2*inch))
 
-    c.save()
+    # Footer
+    story.append(Spacer(1, 0.3*inch))
+    footer_style = ParagraphStyle(
+        'footer',
+        parent=styles['Normal'],
+        fontSize=9,
+        textColor=colors.HexColor('#9ca3af'),
+        alignment=1,
+        fontName='Helvetica-Oblique'
+    )
+    story.append(Paragraph("Military Emergency Triage System © 2026 | Authorized Personnel Only", footer_style))
+
+    # Build PDF
+    doc.build(story)
     buffer.seek(0)
 
     return StreamingResponse(
