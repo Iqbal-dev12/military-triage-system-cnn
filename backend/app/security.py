@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User
-
+import hashlib
 
 # ================= CONFIG =================
 
@@ -22,20 +22,18 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+import hashlib
+
 def hash_password(password: str):
-
-    # Ensure max length for bcrypt
-    password = password.strip()[:72]
-
-    return pwd_context.hash(password)
-
-
+    password = password.strip()
+    sha_password = hashlib.sha256(password.encode()).hexdigest()
+    return pwd_context.hash(sha_password)
 
 def verify_password(password, hashed):
+    password = password.strip()
+    sha_password = hashlib.sha256(password.encode()).hexdigest()
+    return pwd_context.verify(sha_password, hashed)
 
-    password = password.strip()[:72]
-
-    return pwd_context.verify(password, hashed)
 
 
 
