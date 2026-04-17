@@ -16,30 +16,45 @@ class RegisterRequest(BaseModel):
     username: str
     email: str
     password: str
+    role: str
 
 
 class LoginRequest(BaseModel):
     username: str
     password: str
+    role: str
+
+from sqlalchemy.exc import IntegrityError
 
 @router.post("/register")
 def register(data: RegisterRequest, db: Session = Depends(get_db)):
+    print(f"DEBUG: Registering user {data.username} as {data.role}")
+    try:
+        user = db.query(User).filter(User.username == data.username).first()
+        if user:
+            print(f"DEBUG: Username {data.username} already exists")
+            raise HTTPException(400, "Username already exists")
 
-    user = db.query(User).filter(User.username == data.username).first()
+        new_user = User(
+            username=data.username,
+            email=data.email,
+            hashed_password=hash_password(data.password),
+            role=data.role
+        )
 
-    if user:
-        raise HTTPException(400, "Username already exists")
+        db.add(new_user)
+        db.commit()
+        print(f"DEBUG: User {data.username} registered successfully")
+        return {"msg": "Registered successfully"}
 
-    new_user = User(
-        username=data.username,
-        email=data.email,
-        hashed_password=hash_password(data.password)
-    )
-
-    db.add(new_user)
-    db.commit()
-
-    return {"msg": "Registered successfully"}
+    except IntegrityError as e:
+        db.rollback()
+        print(f"DEBUG: Integrity error during registration: {str(e)}")
+        raise HTTPException(400, "Registration failed. Username or email may already exist.")
+    except Exception as e:
+        db.rollback()
+        print(f"DEBUG: Unexpected error during registration: {str(e)}")
+        raise HTTPException(500, f"Internal server error: {str(e)}")
 
 
 
@@ -51,6 +66,9 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(400, "Invalid credentials")
 
+    if user.role != data.role:
+        raise HTTPException(400, f"Invalid credentials for {data.role} role")
+
     if not verify_password(data.password, user.hashed_password):
         raise HTTPException(400, "Invalid credentials")
 
@@ -58,6 +76,7 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
 
     return {
         "access_token": token,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "role": user.role
     }
 

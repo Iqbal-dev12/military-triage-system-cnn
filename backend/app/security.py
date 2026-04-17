@@ -16,27 +16,26 @@ load_dotenv()
 # ================= CONFIG =================
 
 
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY", "military_triage_super_secret_key_2026")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
 
 # ================= PASSWORD =================
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Using pbkdf2_sha256 to avoid bcrypt version conflicts on Windows
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 
 import hashlib
 
 def hash_password(password: str):
     password = password.strip()
-    sha_password = hashlib.sha256(password.encode()).hexdigest()
-    return pwd_context.hash(sha_password)
+    return pwd_context.hash(password)
 
 def verify_password(password, hashed):
     password = password.strip()
-    sha_password = hashlib.sha256(password.encode()).hexdigest()
-    return pwd_context.verify(sha_password, hashed)
+    return pwd_context.verify(password, hashed)
 
 
 

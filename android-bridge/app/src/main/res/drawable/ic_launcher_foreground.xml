@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Military star icon in triage red -->
+    <path
+        android:fillColor="#ef4444"
+        android:pathData="M54,20 L59,40 L80,40 L63,52 L69,72 L54,60 L39,72 L45,52 L28,40 L49,40 Z" />
+
+    <!-- Cross symbol -->
+    <path
+        android:fillColor="#ffffff"
+        android:pathData="M50,75 L58,75 L58,88 L50,88 Z" />
+    <path
+        android:fillColor="#ffffff"
+        android:pathData="M44,80 L64,80 L64,83 L44,83 Z" />
+</vector>

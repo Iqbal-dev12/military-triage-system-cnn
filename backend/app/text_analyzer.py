@@ -16,10 +16,9 @@ def analyze_text(text):
     label = result["label"]
     score = result["score"]
 
-    # Map sentiment → triage (simple logic)
     if label == "NEGATIVE":
         # serious condition
-        return "red", score
+        return "Red", score
     else:
         # mild
-        return "green", score
+        return "Green", score

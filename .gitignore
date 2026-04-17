@@ -17,6 +17,10 @@ __pycache__/
 venv/
 .env
 
+# Databases
+*.db
+*.sqlite3
+
 # ===============================
 # ML Models (do NOT push binaries)
 # ===============================
@@ -50,3 +54,7 @@ Thumbs.db
 .idea/
 
 node_modules/
+
+android-bridge/.gradle
+android-bridge/build
+android-bridge/app/build

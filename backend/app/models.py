@@ -8,6 +8,7 @@ class User(Base):
     username = Column(String, unique=True, index=True) 
     email = Column(String, unique=True, index=True) 
     hashed_password = Column(String) 
+    role = Column(String, default="patient") # "patient" or "doctor"
     records = relationship("TriageRecord", back_populates="user")
 
 class TriageRecord(Base): 
@@ -15,6 +16,26 @@ class TriageRecord(Base):
     id = Column(Integer, primary_key=True, index=True) 
     triage_level = Column(String) 
     confidence = Column(Float) 
-    timestamp = Column(DateTime, default=datetime.utcnow) 
+    timestamp = Column(DateTime, default=datetime.now) 
     user_id = Column(Integer, ForeignKey("users.id")) 
     user = relationship("User", back_populates="records")
+
+class Patient(Base):
+    __tablename__ = "patients"
+    id = Column(Integer, primary_key=True, index=True)
+    patientId = Column(String, index=True)
+    timestamp = Column(DateTime, default=datetime.now)
+    status = Column(String)  # RED, YELLOW, GREEN, BLACK
+    survivalProbability = Column(Float)
+    injuryType = Column(String)
+    spo2 = Column(Integer)
+    heartRate = Column(Integer)
+    imageScore = Column(Float)
+    audioScore = Column(Float)
+    videoScore = Column(Float)
+    recommendation = Column(String)
+    priority = Column(Integer)  # 1 for RED, 2 for YELLOW, 3 for GREEN, 4 for BLACK
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user = relationship("User")

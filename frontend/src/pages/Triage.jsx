@@ -14,6 +14,36 @@ function TriageApp() {
   const [spo2, setSpo2] = useState("");
   const [systolicBP, setSystolicBP] = useState("");
   const [unconscious, setUnconscious] = useState(false);
+  const [liveVitals, setLiveVitals] = useState(null);
+
+  // Poll for live vitals from Android Bridge
+  useEffect(() => {
+    const pollVitals = async () => {
+      try {
+        // Use hostname to work across devices on the same network
+        const backendHost = window.location.hostname === 'localhost' ? '127.0.0.1' : window.location.hostname;
+        const res = await axios.get(`http://${backendHost}:8000/latest-vitals`);
+
+        if (res.data && res.data.timestamp) {
+          console.log("Live vitals received:", res.data);
+          setLiveVitals(res.data);
+          // Auto-fill form if vitals are fresh (e.g., within last 30s)
+          const pingTime = new Date(res.data.timestamp).getTime();
+          const now = new Date().getTime();
+          if (now - pingTime < 30000) {
+            if (!pulse) setPulse(res.data.heart_rate);
+            if (!spo2) setSpo2(res.data.spo2);
+            if (!systolicBP) setSystolicBP(res.data.systolic_bp);
+          }
+        }
+      } catch (err) {
+        // Silent fail for polling errors to avoid UI noise
+      }
+    };
+
+    const interval = setInterval(pollVitals, 3000);
+    return () => clearInterval(interval);
+  }, [pulse, spo2, systolicBP]);
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -138,6 +168,19 @@ function TriageApp() {
     if (systolicBP) formData.append("systolic_bp", systolicBP);
     formData.append("unconscious", unconscious);
 
+    // Capture location before sending
+    if ("geolocation" in navigator) {
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
+        });
+        formData.append("latitude", position.coords.latitude);
+        formData.append("longitude", position.coords.longitude);
+      } catch (err) {
+        console.warn("Location capture failed, proceeding without coordinates:", err);
+      }
+    }
+
     try {
       setLoading(true);
       const res = await axios.post("http://127.0.0.1:8000/predict", formData, {
@@ -156,28 +199,31 @@ function TriageApp() {
   const downloadPDF = async () => {
     if (!result) return;
     try {
-      const res = await axios.post("http://127.0.0.1:8000/download-report", result, {
+      const backendHost = window.location.hostname === 'localhost' ? '127.0.0.1' : window.location.hostname;
+      const res = await axios.post(`http://${backendHost}:8000/download-report`, result, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
           "Content-Type": "application/json"
         },
         responseType: "blob"
       });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", "triage_report.pdf");
+      link.setAttribute("download", `triage_report_${result.patientId || 'patient'}.pdf`);
       document.body.appendChild(link);
       link.click();
+      window.URL.revokeObjectURL(url);
       link.remove();
     } catch (err) {
       console.error("PDF download failed", err);
     }
   };
 
-  // Logout handler
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("role");
     navigate("/");
   };
 
@@ -186,13 +232,13 @@ function TriageApp() {
       {/* Animated Background Blobs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
-        <div className="absolute top-1/3 left-1/4 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl animate-float" style={{animationDelay: '0.5s'}}></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/3 left-1/4 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
       {/* Scroll wrapper for large content */}
       <div className="relative w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 max-h-[90vh] overflow-y-auto">
-        
+
         {/* Header with Logout Button */}
         <div className="text-center mb-10 animate-fade-in relative">
           <button
@@ -213,9 +259,9 @@ function TriageApp() {
         <div className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-700/50 p-6 sm:p-8 lg:p-10 space-y-8">
 
           {/* IMAGE SECTION */}
-          <div className="space-y-4 animate-slide-in-left" style={{animationDelay: '0.1s'}}>
+          <div className="space-y-4 animate-slide-in-left" style={{ animationDelay: '0.1s' }}>
             <h3 className="text-xl sm:text-2xl font-bold text-amber-400 flex items-center gap-2 uppercase tracking-wide">🖼 Injury Image</h3>
-            
+
             {!cameraOn && (
               <button
                 onClick={startCamera}
@@ -269,7 +315,7 @@ function TriageApp() {
           </div>
 
           {/* AUDIO SECTION */}
-          <div className="space-y-4 border-t border-slate-700/50 pt-8 animate-slide-in-right" style={{animationDelay: '0.2s'}}>
+          <div className="space-y-4 border-t border-slate-700/50 pt-8 animate-slide-in-right" style={{ animationDelay: '0.2s' }}>
             <h3 className="text-xl sm:text-2xl font-bold text-cyan-400 flex items-center gap-2 uppercase tracking-wide">🎤 Injury Audio</h3>
             <div className="space-y-2">
               <label className="block text-gray-300 font-semibold uppercase text-sm tracking-wide">Upload Audio File</label>
@@ -288,7 +334,7 @@ function TriageApp() {
           </div>
 
           {/* TEXT SECTION */}
-          <div className="space-y-4 border-t border-slate-700/50 pt-8 animate-slide-in-left" style={{animationDelay: '0.3s'}}>
+          <div className="space-y-4 border-t border-slate-700/50 pt-8 animate-slide-in-left" style={{ animationDelay: '0.3s' }}>
             <h3 className="text-xl sm:text-2xl font-bold text-yellow-400 flex items-center gap-2 uppercase tracking-wide">📝 Injury Description</h3>
             <textarea
               rows="4"
@@ -300,8 +346,68 @@ function TriageApp() {
           </div>
 
           {/* VITALS SECTION */}
-          <div className="space-y-4 border-t border-slate-700/50 pt-8 animate-slide-in-right" style={{animationDelay: '0.4s'}}>
-            <h3 className="text-xl sm:text-2xl font-bold text-red-400 flex items-center gap-2 uppercase tracking-wide">❤️ Vital Signs (Optional)</h3>
+          <div className="space-y-4 border-t border-slate-700/50 pt-8 animate-slide-in-right" style={{ animationDelay: '0.4s' }}>
+            {/* LIVE VITALS DISPLAY (From Watch) */}
+            <div className="space-y-4 border-t border-slate-700/50 pt-8 animate-fade-in">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl sm:text-2xl font-bold text-emerald-400 flex items-center gap-2 uppercase tracking-wide">
+                  📡 Live Watch Vitals
+                </h3>
+                {liveVitals && liveVitals.timestamp ? (
+                  <span className="flex items-center gap-2 px-3 py-1 bg-emerald-500/20 text-emerald-300 text-xs font-bold rounded-full animate-pulse border border-emerald-500/30">
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full"></span> LIVE
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2 px-3 py-1 bg-slate-700/50 text-gray-400 text-[10px] font-bold rounded-full border border-slate-600/30">
+                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-ping"></div> WAITING FOR BRIDGE...
+                  </span>
+                )}
+              </div>
+
+              {liveVitals && liveVitals.timestamp ? (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="bg-slate-700/40 p-4 rounded-xl border border-slate-600/30 text-center text-sm sm:text-base">
+                      <p className="text-gray-400 text-[10px] uppercase mb-1">Heart Rate</p>
+                      <p className="text-xl font-black text-white">{liveVitals.heart_rate} <span className="text-[10px] font-normal text-gray-400">bpm</span></p>
+                    </div>
+                    <div className="bg-slate-700/40 p-4 rounded-xl border border-slate-600/30 text-center text-sm sm:text-base">
+                      <p className="text-gray-400 text-[10px] uppercase mb-1">SpO2</p>
+                      <p className="text-xl font-black text-white">{liveVitals.spo2} <span className="text-[10px] font-normal text-gray-400">%</span></p>
+                    </div>
+                    <div className="bg-slate-700/40 p-4 rounded-xl border border-slate-600/30 text-center text-sm sm:text-base">
+                      <p className="text-gray-400 text-[10px] uppercase mb-1">BP (Sys/Dia)</p>
+                      <p className="text-lg font-black text-white">{liveVitals.systolic_bp}/{liveVitals.diastolic_bp}</p>
+                    </div>
+                    <div className={`p-4 rounded-xl border text-center font-bold flex flex-col justify-center text-sm sm:text-base ${liveVitals.triage === 'RED' ? 'bg-red-500/20 border-red-500/50 text-red-400 animate-pulse' :
+                      liveVitals.triage === 'YELLOW' ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400' :
+                        liveVitals.triage === 'BLACK' ? 'bg-gray-800 border-gray-600 text-gray-300' :
+                          'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
+                      }`}>
+                      <p className="text-[10px] uppercase opacity-80 mb-1">Triage</p>
+                      <p className="text-lg">{liveVitals.triage}</p>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-gray-500 text-right italic">
+                    Last updated: {new Date(liveVitals.timestamp).toLocaleTimeString()}
+                  </p>
+                </>
+              ) : (
+                <div className="bg-slate-800/30 border border-dashed border-slate-700 rounded-xl p-6 text-center">
+                  <p className="text-gray-500 text-sm font-medium italic">
+                    Waiting for data from the Android Bridge app...
+                  </p>
+                  <p className="text-[10px] text-gray-600 mt-2">
+                    (Ensure your phone is on this WiFi and you've tapped "Start Sending")
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* VITALS SECTION (Manual Override) */}
+          <div className="space-y-4 border-t border-slate-700/50 pt-8 animate-slide-in-right" style={{ animationDelay: '0.4s' }}>
+            <h3 className="text-xl sm:text-2xl font-bold text-red-400 flex items-center gap-2 uppercase tracking-wide">❤️ {liveVitals && liveVitals.timestamp ? 'Manual Vitals Override' : 'Vital Signs (Optional)'}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <input
                 type="number"
@@ -362,15 +468,14 @@ function TriageApp() {
 
               {/* Triage Level Banner */}
               <div
-                className={`p-6 rounded-2xl text-center font-bold text-2xl sm:text-3xl shadow-2xl border-2 ${
-                  result.triage_level === "Black"
-                    ? "bg-gradient-to-r from-gray-700 to-gray-900 border-gray-600 text-gray-100"
-                    : result.triage_level === "Red"
+                className={`p-6 rounded-2xl text-center font-bold text-2xl sm:text-3xl shadow-2xl border-2 ${result.triage_level === "Black"
+                  ? "bg-gradient-to-r from-gray-700 to-gray-900 border-gray-600 text-gray-100"
+                  : result.triage_level === "Red"
                     ? "bg-gradient-to-r from-red-700 to-red-900 border-red-600 text-white animate-pulse"
                     : result.triage_level === "Yellow"
-                    ? "bg-gradient-to-r from-yellow-600 to-amber-700 border-yellow-600 text-gray-900"
-                    : "bg-gradient-to-r from-green-600 to-emerald-700 border-green-600 text-white"
-                }`}
+                      ? "bg-gradient-to-r from-yellow-600 to-amber-700 border-yellow-600 text-gray-900"
+                      : "bg-gradient-to-r from-green-600 to-emerald-700 border-green-600 text-white"
+                  }`}
               >
                 TRIAGE LEVEL: {result.triage_level}
               </div>
@@ -410,7 +515,7 @@ function TriageApp() {
 
               {/* Probability Bars */}
               <div className="space-y-4">
-                <h4 className="text-xl sm:text-2xl font-bold text-blue-400 flex items-center gap-2 uppercase tracking-wide">📊 Model Confidence (Before vitals)</h4>
+                <h4 className="text-xl sm:text-2xl font-bold text-blue-400 flex items-center gap-2 uppercase tracking-wide">📊 Integrated Triage Probability</h4>
                 {Object.entries(result.probabilities).map(([k, v]) => {
                   const colors = {
                     Black: "from-gray-600 to-gray-700",

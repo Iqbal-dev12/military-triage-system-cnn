@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0e1117"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal">
+
+        <!-- Header -->
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🪖 Military Triage Bridge"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#ffffff"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="IoT Vitals → AI Triage System"
+            android:textSize="13sp"
+            android:textColor="#9ca3af"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Server Config Card -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="#1e2432"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚙️ Server Configuration"
+                    android:textColor="#ffffff"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp" />
+
+                <EditText
+                    android:id="@+id/etServerUrl"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:inputType="textUri"
+                    android:text="http://10.89.140.141:8000/"
+                    android:textColor="#ffffff"
+                    android:textSize="14sp"
+                    android:background="@drawable/input_background"
+                    android:paddingHorizontal="12dp" />
+                
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Modify if using Localtunnel/Ngrok"
+                    android:textColor="#6b7280"
+                    android:textSize="10sp"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Autonomous Mode Card -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="#1e2432"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:gravity="center_vertical">
+                
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🤖 Autonomous Sync"
+                        android:textColor="#ffffff"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+                        
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Fetch vitals from Google Fit automatically"
+                        android:textColor="#6b7280"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <Switch
+                    android:id="@+id/swAutoSync"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:thumbTint="#3b82f6"
+                    android:trackTint="#1e293b" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Input Card -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="#1e2432"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="8dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📋 Enter Vitals"
+                    android:textColor="#ffffff"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- Heart Rate -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="❤️  Heart Rate (bpm)"
+                    android:textColor="#9ca3af"
+                    android:textSize="13sp"
+                    android:layout_marginBottom="4dp" />
+                <EditText
+                    android:id="@+id/etHeartRate"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:inputType="number"
+                    android:hint="e.g. 95"
+                    android:textColorHint="#4b5563"
+                    android:textColor="#ffffff"
+                    android:textSize="16sp"
+                    android:background="@drawable/input_background"
+                    android:paddingHorizontal="16dp"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- SpO2 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🩺  SpO₂ (%)"
+                    android:textColor="#9ca3af"
+                    android:textSize="13sp"
+                    android:layout_marginBottom="4dp" />
+                <EditText
+                    android:id="@+id/etSpo2"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:inputType="number"
+                    android:hint="e.g. 97"
+                    android:textColorHint="#4b5563"
+                    android:textColor="#ffffff"
+                    android:textSize="16sp"
+                    android:background="@drawable/input_background"
+                    android:paddingHorizontal="16dp"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- Systolic BP -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🔵  Systolic BP (mmHg)"
+                    android:textColor="#9ca3af"
+                    android:textSize="13sp"
+                    android:layout_marginBottom="4dp" />
+                <EditText
+                    android:id="@+id/etSystolicBp"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:inputType="number"
+                    android:hint="e.g. 120"
+                    android:textColorHint="#4b5563"
+                    android:textColor="#ffffff"
+                    android:textSize="16sp"
+                    android:background="@drawable/input_background"
+                    android:paddingHorizontal="16dp"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- Diastolic BP -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚪  Diastolic BP (mmHg)"
+                    android:textColor="#9ca3af"
+                    android:textSize="13sp"
+                    android:layout_marginBottom="4dp" />
+                <EditText
+                    android:id="@+id/etDiastolicBp"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:inputType="number"
+                    android:hint="e.g. 80"
+                    android:textColorHint="#4b5563"
+                    android:textColor="#ffffff"
+                    android:textSize="16sp"
+                    android:background="@drawable/input_background"
+                    android:paddingHorizontal="16dp"
+                    android:layout_marginBottom="4dp" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Toggle Button -->
+        <Button
+            android:id="@+id/btnToggle"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="Start Sending"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#ffffff"
+            android:backgroundTint="#3b82f6"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Status -->
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Status: Idle"
+            android:textColor="#6b7280"
+            android:textSize="13sp"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Triage Result Card -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardTriageResult"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="#1e2432"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="12dp"
+            android:layout_marginBottom="32dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="32dp">
+
+                <TextView
+                    android:id="@+id/tvTriageEmoji"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⬜"
+                    android:textSize="48sp"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="TRIAGE RESULT"
+                    android:textColor="#9ca3af"
+                    android:textSize="12sp"
+                    android:letterSpacing="0.15"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/tvTriageResult"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="—"
+                    android:textColor="#ffffff"
+                    android:textSize="40sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/tvTriageReason"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textColor="#d1d5db"
+                    android:textSize="13sp"
+                    android:gravity="center"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+    </LinearLayout>
+</ScrollView>
